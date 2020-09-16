@@ -8,8 +8,8 @@ FROM base as build
 ARG BUILD_TYPE
 ARG LLVM_WEDLOCK_INSTALL_DIR
 
-RUN DEBIAN_FRONTEND="noninteractive" \
-    apt-get update && \
+ENV DEBIAN_FRONTEND="noninteractive"
+RUN apt-get update && \
     apt-get -y install clang-10 cmake zlib1g-dev ninja-build \
         python3.8 python3.8-dev python3-pip && \
     update-alternatives --install /usr/bin/cc cc /usr/bin/clang-10 100 && \
