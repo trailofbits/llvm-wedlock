@@ -3062,11 +3062,6 @@ void AsmPrinter::EmitBasicBlockStart(const MachineBasicBlock &MBB) {
 }
 
 void AsmPrinter::EmitBasicBlockEnd(const MachineBasicBlock &MBB) {
-  MCCodePaddingContext Context;
-  setupCodePaddingContext(MBB, Context);
-  OutStreamer->EmitCodePaddingBasicBlockEnd(Context);
-  OutStreamer->emitRawComment(" -- end " + MBB.getSymbol()->getName(), false);
-
   // Emit an end symbol for each basic block.
   auto &MFC = OutStreamer->getContext();
   // NOTE(ww): This should always create a symbol, since the underlying
