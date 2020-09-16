@@ -1,8 +1,7 @@
 ARG BUILD_TYPE=Release
 ARG LLVM_WEDLOCK_INSTALL_DIR=/opt/llvm-wedlock
 
-# Must be some ubuntu 18.04 base
-FROM ubuntu:18.04 as base
+FROM ubuntu:20.04 as base
 
 FROM base as build
 # Must explicitly list all global args within an image definition
@@ -10,12 +9,12 @@ ARG BUILD_TYPE
 ARG LLVM_WEDLOCK_INSTALL_DIR
 
 RUN apt-get update && \
-    apt-get -y install clang-7 cmake zlib1g-dev ninja-build \
+    apt-get -y install clang-10 cmake zlib1g-dev ninja-build \
         python3.7 python3.7-dev python3-pip && \
-    update-alternatives --install /usr/bin/cc cc /usr/bin/clang-7 100 && \
-    update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-7 100 && \
-    update-alternatives --install /usr/bin/clang clang /usr/bin/clang-7 100 && \
-    update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-7 100 && \
+    update-alternatives --install /usr/bin/cc cc /usr/bin/clang-10 100 && \
+    update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-10 100 && \
+    update-alternatives --install /usr/bin/clang clang /usr/bin/clang-10 100 && \
+    update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-10 100 && \
     rm -rf /var/lib/apt/lists/*
 
 # Build the Wedlock pass
@@ -35,9 +34,9 @@ RUN cmake \
 FROM base
 ARG LLVM_WEDLOCK_INSTALL_DIR
 
-# Get runtime dependencies of llvm-7
+# Get runtime dependencies of llvm-10
 RUN apt-get update && \
-    apt-get install -y $(apt-cache depends llvm-7 | grep Depends | sed "s/.*ends:\ //" | tr '\n' ' ') && \
+    apt-get install -y $(apt-cache depends llvm-10 | grep Depends | sed "s/.*ends:\ //" | tr '\n' ' ') && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy just our installation directory from build image
