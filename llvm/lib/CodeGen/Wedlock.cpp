@@ -105,32 +105,12 @@ private:
     }
   }
 
-  /* NOTE(ww): Stolen from Demangle.cpp (not present in LLVM 7).
+  /* NOTE(ww): Stolen from Demangle.cpp (where it's static in LLVM 10).
    */
   static bool isItaniumEncoding(const std::string &MangledName) {
     size_t Pos = MangledName.find_first_not_of('_');
     // A valid Itanium encoding requires 1-4 leading underscores, followed by 'Z'.
     return Pos > 0 && Pos <= 4 && MangledName[Pos] == 'Z';
-  }
-
-  /* NOTE(ww): As above, adapted from a later version of Demangle.cpp.
-   */
-  static std::string demangleSymbol(const std::string &MangledName) {
-    char *Demangled = nullptr;
-
-    /* TODO(ww): Re-intro MS demangling here.
-     */
-    if (isItaniumEncoding(MangledName)) {
-      Demangled = itaniumDemangle(MangledName.c_str(), nullptr, nullptr, nullptr);
-    }
-
-    if (Demangled == nullptr) {
-      return MangledName;
-    }
-
-    std::string Ret = Demangled;
-    free(Demangled);
-    return Ret;
   }
 
   void doWedlockPairs(MachineFunction &MF) {
@@ -257,7 +237,7 @@ private:
                      {"operand", FuncOperand},
                      {"name", MF.getName()},
                      {"is_mangled", isItaniumEncoding(MF.getName())},
-                     {"demangled_name", demangleSymbol(MF.getName())},
+                     {"demangled_name", demangle(MF.getName()),
                      {"frame_info", std::move(FrameInfoJson)},
                      {"bbs", std::move(BasicBlocksJson)},
                  }},
