@@ -237,7 +237,7 @@ private:
                      {"operand", FuncOperand},
                      {"name", MF.getName()},
                      {"is_mangled", isItaniumEncoding(MF.getName())},
-                     {"demangled_name", demangle(MF.getName()),
+                     {"demangled_name", demangle(MF.getName())},
                      {"frame_info", std::move(FrameInfoJson)},
                      {"bbs", std::move(BasicBlocksJson)},
                  }},
