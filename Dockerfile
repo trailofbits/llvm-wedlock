@@ -10,7 +10,7 @@ ARG LLVM_WEDLOCK_INSTALL_DIR
 
 RUN apt-get update && \
     apt-get -y install clang-10 cmake zlib1g-dev ninja-build \
-        python3.7 python3.7-dev python3-pip && \
+        python3.8 python3.8-dev python3-pip && \
     update-alternatives --install /usr/bin/cc cc /usr/bin/clang-10 100 && \
     update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-10 100 && \
     update-alternatives --install /usr/bin/clang clang /usr/bin/clang-10 100 && \
