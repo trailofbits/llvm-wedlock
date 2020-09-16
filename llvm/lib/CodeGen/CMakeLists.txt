@@ -173,6 +173,7 @@ add_llvm_component_library(LLVMCodeGen
   ValueTypes.cpp
   VirtRegMap.cpp
   WasmEHPrepare.cpp
+  Wedlock.cpp
   WinEHPrepare.cpp
   XRayInstrumentation.cpp
 

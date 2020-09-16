@@ -195,6 +195,10 @@ private:
   /// If the current module uses dwarf CFI annotations strictly for debugging.
   bool isCFIMoveForDebugging = false;
 
+  /// If the function being processed is missing a "natural" Wedlock epilogue anchor, i.e.
+  /// one produced during frame destruction codegen.
+  bool isMissingWedlockEpilogueAnchor = true;
+
 protected:
   explicit AsmPrinter(TargetMachine &TM, std::unique_ptr<MCStreamer> Streamer);
 
@@ -325,6 +329,8 @@ public:
 
   /// This method emits the body and trailer for a function.
   void EmitFunctionBody();
+
+  void emitWedlockAnchor(const MachineInstr &MI);
 
   void emitCFIInstruction(const MachineInstr &MI);
 

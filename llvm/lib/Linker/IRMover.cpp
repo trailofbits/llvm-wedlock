@@ -325,10 +325,13 @@ Type *TypeMapTy::get(Type *Ty, SmallPtrSet<StructType *, 8> &Visited) {
       return *Entry = Ty;
     }
 
-    if (StructType *OldT =
-            DstStructTypesSet.findNonOpaque(ElementTypes, IsPacked)) {
-      STy->setName("");
-      return *Entry = OldT;
+    // Prevent type merging of class names, so we can recover them later.
+    if (!STy->getName().startswith("class.")) {
+      if (StructType *OldT =
+              DstStructTypesSet.findNonOpaque(ElementTypes, IsPacked)) {
+        STy->setName("");
+        return *Entry = OldT;
+      }
     }
 
     if (!AnyChange) {

@@ -1501,6 +1501,10 @@ void X86FrameLowering::emitPrologue(MachineFunction &MF,
 
   // At this point we know if the function has WinCFI or not.
   MF.setHasWinCFI(HasWinCFI);
+
+  // NOTE(ww): Drop a prologue anchor for later detection.
+  BuildMI(MBB, MBBI, DL, TII.get(TargetOpcode::WEDLOCK_PROLOGUE_ANCHOR))
+      .setMIFlag(MachineInstr::FrameSetup);
 }
 
 bool X86FrameLowering::canUseLEAForSPInEpilogue(
@@ -1633,6 +1637,10 @@ void X86FrameLowering::emitEpilogue(MachineFunction &MF,
     NumBytes = StackSize - CSSize;
   }
   uint64_t SEHStackAllocAmt = NumBytes;
+
+  // NOTE(ww): Just like the prologue: drop an epilogue anchor for later detection.
+  BuildMI(MBB, MBBI, DL, TII.get(TargetOpcode::WEDLOCK_EPILOGUE_ANCHOR))
+      .setMIFlag(MachineInstr::FrameDestroy);
 
   if (HasFP) {
     // Pop EBP.

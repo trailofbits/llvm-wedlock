@@ -978,6 +978,18 @@ class StandardPseudoInstruction : Instruction {
   let hasNoSchedulingInfo = 1;
   let Namespace = "TargetOpcode";
 }
+def WEDLOCK_PROLOGUE_ANCHOR : StandardPseudoInstruction {
+  let OutOperandList = (outs);
+  let InOperandList = (ins);
+  let AsmString = "WEDLOCK_PROLOGUE_ANCHOR";
+  let hasSideEffects = 0;
+}
+def WEDLOCK_EPILOGUE_ANCHOR : StandardPseudoInstruction {
+  let OutOperandList = (outs);
+  let InOperandList = (ins);
+  let AsmString = "WEDLOCK_EPILOGUE_ANCHOR";
+  let hasSideEffects = 0;
+}
 def PHI : StandardPseudoInstruction {
   let OutOperandList = (outs unknown:$dst);
   let InOperandList = (ins variable_ops);

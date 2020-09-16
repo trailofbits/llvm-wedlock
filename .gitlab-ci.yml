@@ -1,0 +1,60 @@
+stages:
+  - build
+  - publish
+
+variables:
+  GIT_STRATEGY: fetch
+  GIT_SUBMODULE_STRATEGY: none
+
+.docker:
+  tags:
+    - docker
+  image: docker:stable
+  before_script:
+    - echo "${REGISTRY_PASSWORD}" |
+      docker login -u "${REGISTRY_USER}" --password-stdin "${REGISTRY_HOST}" || true
+
+.build:
+  extends: .docker
+  stage: build
+  dependencies: []
+
+.publish:
+  extends: .docker
+  stage: publish
+  dependencies: []
+
+build:docker:
+  extends: .build
+  script:
+    - |
+      docker build \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --tag "${REGISTRY_HOST}/tob-llvm-wedlock:${CI_COMMIT_SHORT_SHA}" \
+        .
+
+build:nix:
+  extends: .build
+  script:
+    - |
+      docker build \
+        --file nix.dockerfile \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --tag "${REGISTRY_HOST}/tob-llvm-wedlock-nix:${CI_COMMIT_SHORT_SHA}" \
+        .
+
+publish:docker:
+  extends: .publish
+  needs: ["build:docker"]
+  script:
+    - |
+      docker push \
+        "${REGISTRY_HOST}/tob-llvm-wedlock:${CI_COMMIT_SHORT_SHA}"
+
+publish:nix:
+  extends: .publish
+  needs: ["build:nix"]
+  script:
+    - |
+      docker push \
+        "${REGISTRY_HOST}/tob-llvm-wedlock-nix:${CI_COMMIT_SHORT_SHA}"

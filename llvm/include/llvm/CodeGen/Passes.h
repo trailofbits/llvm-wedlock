@@ -68,6 +68,8 @@ namespace llvm {
   /// and scatter intrinsics with scalar code when target doesn't support them.
   FunctionPass *createScalarizeMaskedMemIntrinPass();
 
+  MachineFunctionPass *createWedlockPass();
+
   /// AtomicExpandID -- Lowers atomic operations in terms of either cmpxchg
   /// load-linked/store-conditional loops.
   extern char &AtomicExpandID;

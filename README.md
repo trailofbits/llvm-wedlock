@@ -1,109 +1,132 @@
-# The LLVM Compiler Infrastructure
+# llvm-wedlock
 
-This directory and its subdirectories contain source code for LLVM,
-a toolkit for the construction of highly optimized compilers,
-optimizers, and runtime environments.
+## Usage
 
-The README briefly describes how to get started with building LLVM.
-For more information on how to contribute to the LLVM project, please
-take a look at the
-[Contributing to LLVM](https://llvm.org/docs/Contributing.html) guide.
+The Wedlock pass currently builds in Docker:
 
-## Getting Started with the LLVM System
+```bash
+docker build -t llvm-wedlock .
+docker run --rm -it llvm-wedlock /bin/bash
+```
 
-Taken from https://llvm.org/docs/GettingStarted.html.
+Within Docker:
 
-### Overview
+```bash
+# Either .bc or .ll will work
+/chess/llvm/bin/llc -wedlock -wedlock-output foo.wedlock.jsonl -o foo.s foo.bc
+```
 
-Welcome to the LLVM project!
+## Build Instructions
 
-The LLVM project has multiple components. The core of the project is
-itself called "LLVM". This contains all of the tools, libraries, and header
-files needed to process intermediate representations and converts it into
-object files.  Tools include an assembler, disassembler, bitcode analyzer, and
-bitcode optimizer.  It also contains basic regression tests.
+**NOTE**: These instructions may be stale.
 
-C-like languages use the [Clang](http://clang.llvm.org/) front end.  This
-component compiles C, C++, Objective C, and Objective C++ code into LLVM bitcode
--- and from there into object files, using LLVM.
-
-Other components include:
-the [libc++ C++ standard library](https://libcxx.llvm.org),
-the [LLD linker](https://lld.llvm.org), and more.
-
-### Getting the Source Code and Building LLVM
-
-The LLVM Getting Started documentation may be out of date.  The [Clang
-Getting Started](http://clang.llvm.org/get_started.html) page might have more
-accurate information.
-
-This is an example workflow and configuration to get and build the LLVM source:
-
-1. Checkout LLVM (including related subprojects like Clang):
-
-     * ``git clone https://github.com/llvm/llvm-project.git``
-
-     * Or, on windows, ``git clone --config core.autocrlf=false
-    https://github.com/llvm/llvm-project.git``
-
-2. Configure and build LLVM and Clang:
-
-     * ``cd llvm-project``
-
-     * ``mkdir build``
-
-     * ``cd build``
-
-     * ``cmake -G <generator> [options] ../llvm``
-
-        Some common generators are:
-
-        * ``Ninja`` --- for generating [Ninja](https://ninja-build.org)
-          build files. Most llvm developers use Ninja.
-        * ``Unix Makefiles`` --- for generating make-compatible parallel makefiles.
-        * ``Visual Studio`` --- for generating Visual Studio projects and
-          solutions.
-        * ``Xcode`` --- for generating Xcode projects.
-
-        Some Common options:
-
-        * ``-DLLVM_ENABLE_PROJECTS='...'`` --- semicolon-separated list of the LLVM
-          subprojects you'd like to additionally build. Can include any of: clang,
-          clang-tools-extra, libcxx, libcxxabi, libunwind, lldb, compiler-rt, lld,
-          polly, or debuginfo-tests.
-
-          For example, to build LLVM, Clang, libcxx, and libcxxabi, use
-          ``-DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi"``.
-
-        * ``-DCMAKE_INSTALL_PREFIX=directory`` --- Specify for *directory* the full
-          pathname of where you want the LLVM tools and libraries to be installed
-          (default ``/usr/local``).
-
-        * ``-DCMAKE_BUILD_TYPE=type`` --- Valid options for *type* are Debug,
-          Release, RelWithDebInfo, and MinSizeRel. Default is Debug.
-
-        * ``-DLLVM_ENABLE_ASSERTIONS=On`` --- Compile with assertion checks enabled
-          (default is Yes for Debug builds, No for all other build types).
-
-      * Run your build tool of choice!
-
-        * The default target (i.e. ``ninja`` or ``make``) will build all of LLVM.
-
-        * The ``check-all`` target (i.e. ``ninja check-all``) will run the
-          regression tests to ensure everything is in working order.
-
-        * CMake will generate build targets for each tool and library, and most
-          LLVM sub-projects generate their own ``check-<project>`` target.
-
-        * Running a serial build will be *slow*.  To improve speed, try running a
-          parallel build. That's done by default in Ninja; for ``make``, use
-          ``make -j NNN`` (NNN is the number of parallel jobs, use e.g. number of
-          CPUs you have.)
-
-      * For more information see [CMake](https://llvm.org/docs/CMake.html)
-
-Consult the
-[Getting Started with LLVM](https://llvm.org/docs/GettingStarted.html#getting-started-with-llvm)
-page for detailed information on configuring and compiling LLVM. You can visit
-[Directory Layout](https://llvm.org/docs/GettingStarted.html#directory-layout)
-to learn about the layout of the source code tree.
+Build with:
+```bash
+mkdir build
+cd build
+cmake \
+ -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+ -DCLANG_ENABLE_ARCMT=False \
+ -DCLANG_BUILD_TOOLS=False \
+ -DCLANG_ENABLE_STATIC_ANALYZER=False \
+ -DCLANG_INSTALL_SCANVIEW=False \
+ -DCLANG_INSTALL_SCANBUILD=False \
+ -DCLANG_PLUGIN_SUPPORT=False \
+ -DCLANG_TOOL_ARCMT_TEST_BUILD=False \
+ -DCLANG_TOOL_CLANG_CHECK_BUILD=False \
+ -DCLANG_TOOL_CLANG_DIFF_BUILD=False \
+ -DCLANG_TOOL_CLANG_FORMAT_BUILD=False \
+ -DCLANG_TOOL_CLANG_FORMAT_VS_BUILD=False \
+ -DCLANG_TOOL_CLANG_FUNC_MAPPING_BUILD=False \
+ -DCLANG_TOOL_CLANG_FUZZER_BUILD=False \
+ -DCLANG_TOOL_CLANG_IMPORT_TEST_BUILD=False \
+ -DCLANG_TOOL_CLANG_OFFLOAD_BUNDLER_BUILD=False \
+ -DCLANG_TOOL_CLANG_REFACTOR_BUILD=False \
+ -DCLANG_TOOL_CLANG_RENAME_BUILD=False \
+ -DCLANG_TOOL_C_ARCMT_TEST_BUILD=False \
+ -DCLANG_TOOL_C_INDEX_TEST_BUILD=False \
+ -DCLANG_TOOL_DIAGTOOL_BUILD=False \
+ -DCLANG_TOOL_DRIVER_BUILD=False \
+ -DCLANG_TOOL_HANDLE_CXX_BUILD=False \
+ -DCLANG_TOOL_HANDLE_LLVM_BUILD=False \
+ -DCLANG_TOOL_LIBCLANG_BUILD=False \
+ -DCLANG_TOOL_SCAN_BUILD_BUILD=False \
+ -DCLANG_TOOL_SCAN_VIEW_BUILD=False \
+ -DCLANG_TOOLS_EXTRA_INCLUDE_DOCS=False \
+ -DLLVM_ENABLE_BINDINGS=False \
+ -DLLVM_ENABLE_IDE=False \
+ -DLLVM_ENABLE_MODULE_DEBUGGING=False \
+ -DLLVM_ENABLE_OCAMLDOC=False \
+ -DLLVM_ENABLE_PROJECTS=clang \
+ -DLLVM_INCLUDE_DOCS=False \
+ -DLLVM_INCLUDE_EXAMPLES=False \
+ -DLLVM_INCLUDE_GO_TESTS=False \
+ -DLLVM_INCLUDE_RUNTIMES=False \
+ -DLLVM_INCLUDE_TESTS=False \
+ -DLLVM_INCLUDE_UTILS=False \
+ -DLLVM_POLLY_BUILD=False \
+ -DLLVM_POLLY_LINK_INTO_TOOLS=False \
+ -DLLVM_TARGETS_TO_BUILD="X86" \
+ -DLLVM_TOOL_BUGPOINT_BUILD=False \
+ -DLLVM_TOOL_BUGPOINT_PASSES_BUILD=False \
+ -DLLVM_TOOL_LLVM_AR_BUILD=False \
+ -DLLVM_TOOL_LLVM_AS_BUILD=False \
+ -DLLVM_TOOL_LLVM_AS_FUZZER_BUILD=False \
+ -DLLVM_TOOL_LLVM_BCANALYZER_BUILD=False \
+ -DLLVM_TOOL_LLVM_CAT_BUILD=False \
+ -DLLVM_TOOL_LLVM_CFI_VERIFY_BUILD=False \
+ -DLLVM_TOOL_LLVM_COV_BUILD=False \
+ -DLLVM_TOOL_LLVM_CVTRES_BUILD=False \
+ -DLLVM_TOOL_LLVM_C_TEST_BUILD=False \
+ -DLLVM_TOOL_LLVM_DEMANGLE_FUZZER_BUILD=False \
+ -DLLVM_TOOL_LLVM_DIFF_BUILD=False \
+ -DLLVM_TOOL_LLVM_DIS_BUILD=False \
+ -DLLVM_TOOL_LLVM_DWARFDUMP_BUILD=False \
+ -DLLVM_TOOL_LLVM_DWP_BUILD=False \
+ -DLLVM_TOOL_LLVM_EXEGESIS_BUILD=False \
+ -DLLVM_TOOL_LLVM_EXTRACT_BUILD=False \
+ -DLLVM_TOOL_LLVM_GO_BUILD=False \
+ -DLLVM_TOOL_LLVM_ISEL_FUZZER_BUILD=False \
+ -DLLVM_TOOL_LLVM_JITLISTENER_BUILD=False \
+ -DLLVM_TOOL_LLVM_LINK_BUILD=False \
+ -DLLVM_TOOL_LLVM_LTO2_BUILD=False \
+ -DLLVM_TOOL_LLVM_LTO_BUILD=False \
+ -DLLVM_TOOL_LLVM_MCA_BUILD=False \
+ -DLLVM_TOOL_LLVM_MC_ASSEMBLE_FUZZER_BUILD=False \
+ -DLLVM_TOOL_LLVM_MC_BUILD=False \
+ -DLLVM_TOOL_LLVM_MC_DISASSEMBLE_FUZZER_BUILD=False \
+ -DLLVM_TOOL_LLVM_MODEXTRACT_BUILD=False \
+ -DLLVM_TOOL_LLVM_MT_BUILD=False \
+ -DLLVM_TOOL_LLVM_NM_BUILD=False \
+ -DLLVM_TOOL_LLVM_OBJCOPY_BUILD=False \
+ -DLLVM_TOOL_LLVM_OBJDUMP_BUILD=False \
+ -DLLVM_TOOL_LLVM_OPT_FUZZER_BUILD=False \
+ -DLLVM_TOOL_LLVM_OPT_REPORT_BUILD=False \
+ -DLLVM_TOOL_LLVM_PDBUTIL_BUILD=False \
+ -DLLVM_TOOL_LLVM_PROFDATA_BUILD=False \
+ -DLLVM_TOOL_LLVM_RC_BUILD=False \
+ -DLLVM_TOOL_LLVM_READOBJ_BUILD=False \
+ -DLLVM_TOOL_LLVM_RTDYLD_BUILD=False \
+ -DLLVM_TOOL_LLVM_SHLIB_BUILD=False \
+ -DLLVM_TOOL_LLVM_SIZE_BUILD=False \
+ -DLLVM_TOOL_LLVM_SPECIAL_CASE_LIST_FUZZER_BUILD=False \
+ -DLLVM_TOOL_LLVM_SPLIT_BUILD=False \
+ -DLLVM_TOOL_LLVM_STRESS_BUILD=False \
+ -DLLVM_TOOL_LLVM_STRINGS_BUILD=False \
+ -DLLVM_TOOL_LLVM_SYMBOLIZER_BUILD=False \
+ -DLLVM_TOOL_LLVM_UNDNAME_BUILD=False \
+ -DLLVM_TOOL_LLVM_XRAY_BUILD=False \
+ -DLLVM_TOOL_LTO_BUILD=False \
+ -DLLVM_TOOL_OBJ2YAML_BUILD=False \
+ -DLLVM_TOOL_OPT_BUILD=True \
+ -DLLVM_TOOL_OPT_VIEWER_BUILD=False \
+ -DLLVM_TOOL_SANCOV_BUILD=False \
+ -DLLVM_TOOL_SANSTATS_BUILD=False \
+ -DLLVM_TOOL_VERIFY_USELISTORDER_BUILD=False \
+ -DLLVM_TOOL_XCODE_TOOLCHAIN_BUILD=False \
+ -DLLVM_TOOL_YAML2OBJ_BUILD=False \
+ -DLLVM_USE_FOLDERS=False \
+ -G "Ninja" \
+ ../llvm
+cmake --build .
+```

@@ -767,6 +767,10 @@ void AsmPrinter::EmitFunctionHeader() {
   // Emit the prologue data.
   if (F.hasPrologueData())
     EmitGlobalConstant(F.getParent()->getDataLayout(), F.getPrologueData());
+
+  // NOTE(ww): This is the logical place to drop a label to indicate the end of
+  // the function's "prologue," but it isn't actually where the prologue ends --
+  // the backend does additional frame lowering beyond this point.
 }
 
 /// EmitFunctionEntryLabel - Emit the label that is the entrypoint for the
@@ -975,6 +979,23 @@ bool AsmPrinter::needsSEHMoves() {
   return MAI->usesWindowsCFI() && MF->getFunction().needsUnwindTableEntry();
 }
 
+void AsmPrinter::emitWedlockAnchor(const MachineInstr &MI) {
+    auto &MFC = OutStreamer->getContext();
+    // NOTE(ww): This should always create a symbol, since the underlying
+    // symbol that we're building off of should be unique.
+    MCSymbol *MCS;
+    if (MI.getOpcode() == TargetOpcode::WEDLOCK_PROLOGUE_ANCHOR) {
+        MCS = MFC.getOrCreateSymbol(MI.getMF()->getName() + "_prologue_end");
+    } else {
+        // NOTE(ww): If we're being asked to emit an epilogue anchor, then
+        // we set this to avoid dropping a backup one.
+        isMissingWedlockEpilogueAnchor = false;
+        MCS = MFC.getOrCreateSymbol(MI.getMF()->getName() + "_epilogue_begin");
+    }
+
+    OutStreamer->EmitLabel(MCS);
+}
+
 void AsmPrinter::emitCFIInstruction(const MachineInstr &MI) {
   ExceptionHandling ExceptionHandlingType = MAI->getExceptionHandlingType();
   if (ExceptionHandlingType != ExceptionHandling::DwarfCFI &&
@@ -1107,6 +1128,10 @@ void AsmPrinter::EmitFunctionBody() {
         emitComments(MI, OutStreamer->GetCommentOS());
 
       switch (MI.getOpcode()) {
+      case TargetOpcode::WEDLOCK_PROLOGUE_ANCHOR:
+      case TargetOpcode::WEDLOCK_EPILOGUE_ANCHOR:
+        emitWedlockAnchor(MI);
+        break;
       case TargetOpcode::CFI_INSTRUCTION:
         emitCFIInstruction(MI);
         break;
@@ -1205,6 +1230,20 @@ void AsmPrinter::EmitFunctionBody() {
 
   // Emit target-specific gunk after the function body.
   EmitFunctionBodyEnd();
+
+  // NOTE(ww): If isMissingWedlockEpilogueAnchor is true here, then our current function
+  // lacks a "real" epilogue. This can happen for all kinds of reasons, but a trivial one
+  // is a function with an infinite loop: LLVM infers that the loop can never exit, so
+  // it doesn't bother to generate any frame teardown code. When this happens,
+  // we manually intervene to ensure that our epilogue label is inserted anyways.
+  // Our reasons for doing this are convenience: we could just scan for the missing
+  // label instead and default to the function's end RVA, but uniformly emitting
+  // it saves us the scan step.
+  if (isMissingWedlockEpilogueAnchor) {
+    auto &MFC = OutStreamer->getContext();
+    auto *MCS = MFC.getOrCreateSymbol(MF->getName() + "_epilogue_begin");
+    OutStreamer->EmitLabel(MCS);
+  }
 
   if (needFuncLabelsForEHOrDebugInfo(*MF, MMI) ||
       MAI->hasDotTypeDotSizeDirective()) {
@@ -1684,6 +1723,10 @@ MCSymbol *AsmPrinter::getCurExceptionSym() {
 void AsmPrinter::SetupMachineFunction(MachineFunction &MF) {
   this->MF = &MF;
   const Function &F = MF.getFunction();
+
+  // NOTE(ww): We explicitly set this true as we process each function,
+  // to avoid carrying state between functions.
+  isMissingWedlockEpilogueAnchor = true;
 
   // Get the function symbol.
   if (MAI->needsFunctionDescriptors()) {
@@ -3013,14 +3056,24 @@ void AsmPrinter::EmitBasicBlockStart(const MachineBasicBlock &MBB) {
       OutStreamer->emitRawComment(" %bb." + Twine(MBB.getNumber()) + ":",
                                   false);
     }
-  } else {
-    if (isVerbose() && MBB.hasLabelMustBeEmitted())
-      OutStreamer->AddComment("Label of block must be emitted");
-    OutStreamer->EmitLabel(MBB.getSymbol());
   }
+
+  OutStreamer->EmitLabel(MBB.getSymbol());
 }
 
-void AsmPrinter::EmitBasicBlockEnd(const MachineBasicBlock &MBB) {}
+void AsmPrinter::EmitBasicBlockEnd(const MachineBasicBlock &MBB) {
+  MCCodePaddingContext Context;
+  setupCodePaddingContext(MBB, Context);
+  OutStreamer->EmitCodePaddingBasicBlockEnd(Context);
+  OutStreamer->emitRawComment(" -- end " + MBB.getSymbol()->getName(), false);
+
+  // Emit an end symbol for each basic block.
+  auto &MFC = OutStreamer->getContext();
+  // NOTE(ww): This should always create a symbol, since the underlying
+  // symbol that we're building off of should be unique.
+  auto *MCS = MFC.getOrCreateSymbol(MBB.getSymbol()->getName() + "_end");
+  OutStreamer->EmitLabel(MCS);
+}
 
 void AsmPrinter::EmitVisibility(MCSymbol *Sym, unsigned Visibility,
                                 bool IsDefinition) const {

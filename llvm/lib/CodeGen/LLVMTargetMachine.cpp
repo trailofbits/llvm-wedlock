@@ -214,6 +214,8 @@ bool LLVMTargetMachine::addPassesToEmitFile(
                            MMIWP->getMMI().getContext()))
     return true;
 
+  PM.add(createWedlockPass());
+
   PM.add(createFreeMachineFunctionPass());
   return false;
 }
