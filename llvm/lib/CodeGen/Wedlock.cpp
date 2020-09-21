@@ -3,6 +3,7 @@
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineFunctionPass.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
+#include "llvm/CodeGen/Passes.h"
 #include "llvm/CodeGen/TargetInstrInfo.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/Demangle/Demangle.h"
@@ -39,12 +40,18 @@ using JObject = json::Object;
 using JArray = json::Array;
 using JValue = json::Value;
 
-struct WedlockPass : public MachineFunctionPass {
+struct Wedlock : public MachineFunctionPass {
   static char ID;
   raw_fd_ostream *WedlockStream{nullptr};
   raw_fd_ostream *WedlockLoggingStream{nullptr};
 
-  WedlockPass() : MachineFunctionPass(ID) {}
+  Wedlock() : MachineFunctionPass(ID) {}
+
+  void getAnalysisUsage(AnalysisUsage &AU) {
+    AU.setPreservesAll();
+    AU.addRequiredID(PrologEpilogCodeInserterID);
+    MachineFunctionPass::getAnalysisUsage(AU);
+  }
 
   bool doInitialization(Module &M) override {
     if (!EnableWedlockPass) {
@@ -105,6 +112,20 @@ private:
     }
   }
 
+  /* Determine whether the given MachineBasicBlock will have epilogue/restore
+   * code inserted into it. This roughly mirrors the PEI pass: an MBB will
+   * have epilogue code if it's the *either* target of shrink-wrapping, *or*
+   * is a return block.
+   */
+  static bool isEpilogueInsertionBlock(const MachineFrameInfo &MFI,
+        const MachineBasicBlock &MBB) {
+    if (MFI.getSavePoint() != nullptr) {
+      return MBB.getNumber() == MFI.getRestorePoint()->getNumber();
+    } else {
+      return MBB.isReturnBlock();
+    }
+  }
+
   /* NOTE(ww): Stolen from Demangle.cpp (where it's static in LLVM 10).
    */
   static bool isItaniumEncoding(const std::string &MangledName) {
@@ -121,6 +142,18 @@ private:
       verboses() << "No TargetInstrInfo or Module for this machine function?\n";
       return;
     }
+
+    const auto &MFI = MF.getFrameInfo();
+    JValue FrameInfoJson = JObject{
+      {"has_stack_objects", MFI.hasStackObjects()},
+      {"has_variadic_objects", MFI.hasVarSizedObjects()},
+      {"is_frame_address_taken", MFI.isFrameAddressTaken()},
+      {"is_return_address_taken", MFI.isReturnAddressTaken()},
+      {"num_objects", MFI.getNumObjects()},
+      {"num_fixed_objects", MFI.getNumFixedObjects()},
+      {"stack_size", static_cast<int64_t>(MFI.getStackSize())},
+      {"adjusts_stack", MFI.adjustsStack()},
+    };
 
     std::string BackingStr;
     raw_string_ostream RSO(BackingStr);
@@ -205,6 +238,7 @@ private:
                      {"symbol", MBB.getSymbol()->getName()},
                      {"can_fallthrough", MBB.canFallThrough()},
                      {"ends_in_return", MBB.isReturnBlock()},
+                     {"is_epilogue_insertion_block", isEpilogueInsertionBlock(MFI, MBB)},
                      {"address_taken", MBB.hasAddressTaken()},
                      {"has_inline_asm", HasInlineAsm},
                      {"preds", std::move(MIPreds)},
@@ -219,23 +253,12 @@ private:
     MF.getFunction().printAsOperand(RSO, false);
     const auto FuncOperand(RSO.str());
 
-    const auto &MFI = MF.getFrameInfo();
-    JValue FrameInfoJson = JObject{
-      {"has_stack_objects", MFI.hasStackObjects()},
-      {"has_variadic_objects", MFI.hasVarSizedObjects()},
-      {"is_frame_address_taken", MFI.isFrameAddressTaken()},
-      {"is_return_address_taken", MFI.isReturnAddressTaken()},
-      {"num_objects", MFI.getNumObjects()},
-      {"num_fixed_objects", MFI.getNumFixedObjects()},
-      {"stack_size", static_cast<int64_t>(MFI.getStackSize())},
-      {"adjusts_stack", MFI.adjustsStack()},
-    };
-
     JValue WedlockJson =
         JObject{{"function",
                  JObject{
                      {"operand", FuncOperand},
                      {"name", MF.getName()},
+                     {"number", MF.getFunctionNumber()},
                      {"is_mangled", isItaniumEncoding(MF.getName())},
                      {"demangled_name", demangle(MF.getName())},
                      {"frame_info", std::move(FrameInfoJson)},
@@ -254,8 +277,8 @@ private:
 };
 } // namespace
 
-char WedlockPass::ID = 0;
+char Wedlock::ID = 0;
 
 namespace llvm {
-MachineFunctionPass *createWedlockPass() { return new WedlockPass(); }
+MachineFunctionPass *createWedlockPass() { return new Wedlock(); }
 } // namespace llvm

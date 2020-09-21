@@ -981,16 +981,21 @@ bool AsmPrinter::needsSEHMoves() {
 
 void AsmPrinter::emitWedlockAnchor(const MachineInstr &MI) {
     auto &MFC = OutStreamer->getContext();
+    const auto MFName = MF->getName();
+    const auto MBBName = MI.getParent()->getSymbol()->getName();
+
     // NOTE(ww): This should always create a symbol, since the underlying
     // symbol that we're building off of should be unique.
     MCSymbol *MCS;
-    if (MI.getOpcode() == TargetOpcode::WEDLOCK_PROLOGUE_ANCHOR) {
-        MCS = MFC.getOrCreateSymbol(MI.getMF()->getName() + "_prologue_end");
-    } else {
-        // NOTE(ww): If we're being asked to emit an epilogue anchor, then
-        // we set this to avoid dropping a backup one.
-        isMissingWedlockEpilogueAnchor = false;
-        MCS = MFC.getOrCreateSymbol(MI.getMF()->getName() + "_epilogue_begin");
+    switch (MI.getOpcode()) {
+    default:
+      llvm_unreachable("impossible opcode");
+    case TargetOpcode::WEDLOCK_PROLOGUE_ANCHOR:
+      MCS = MFC.getOrCreateSymbol(MFName + "_prologue_end");
+      break;
+    case TargetOpcode::WEDLOCK_EPILOGUE_ANCHOR:
+      MCS = MFC.getOrCreateSymbol(MFName + "_" + MBBName + "_epilogue_begin");
+      break;
     }
 
     OutStreamer->EmitLabel(MCS);
@@ -1230,20 +1235,6 @@ void AsmPrinter::EmitFunctionBody() {
 
   // Emit target-specific gunk after the function body.
   EmitFunctionBodyEnd();
-
-  // NOTE(ww): If isMissingWedlockEpilogueAnchor is true here, then our current function
-  // lacks a "real" epilogue. This can happen for all kinds of reasons, but a trivial one
-  // is a function with an infinite loop: LLVM infers that the loop can never exit, so
-  // it doesn't bother to generate any frame teardown code. When this happens,
-  // we manually intervene to ensure that our epilogue label is inserted anyways.
-  // Our reasons for doing this are convenience: we could just scan for the missing
-  // label instead and default to the function's end RVA, but uniformly emitting
-  // it saves us the scan step.
-  if (isMissingWedlockEpilogueAnchor) {
-    auto &MFC = OutStreamer->getContext();
-    auto *MCS = MFC.getOrCreateSymbol(MF->getName() + "_epilogue_begin");
-    OutStreamer->EmitLabel(MCS);
-  }
 
   if (needFuncLabelsForEHOrDebugInfo(*MF, MMI) ||
       MAI->hasDotTypeDotSizeDirective()) {
@@ -1723,10 +1714,6 @@ MCSymbol *AsmPrinter::getCurExceptionSym() {
 void AsmPrinter::SetupMachineFunction(MachineFunction &MF) {
   this->MF = &MF;
   const Function &F = MF.getFunction();
-
-  // NOTE(ww): We explicitly set this true as we process each function,
-  // to avoid carrying state between functions.
-  isMissingWedlockEpilogueAnchor = true;
 
   // Get the function symbol.
   if (MAI->needsFunctionDescriptors()) {
