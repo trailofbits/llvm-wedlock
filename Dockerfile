@@ -43,8 +43,3 @@ RUN apt-get update && \
 # Copy just our installation directory from build image
 COPY --from=build ${LLVM_WEDLOCK_INSTALL_DIR} ${LLVM_WEDLOCK_INSTALL_DIR}
 
-# Let others know where we installed it
-ENV LLVM_WEDLOCK_INSTALL_DIR="${LLVM_WEDLOCK_INSTALL_DIR}" \
-    LLVM_BIN="${LLVM_WEDLOCK_INSTALL_DIR}/bin" \
-    LLVM_DIR="${LLVM_WEDLOCK_INSTALL_DIR}/lib/cmake/llvm" \
-    PATH="${LLVM_WEDLOCK_INSTALL_DIR}/bin:${PATH}"
