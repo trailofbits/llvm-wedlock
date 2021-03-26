@@ -10,7 +10,7 @@ ARG LLVM_WEDLOCK_INSTALL_DIR
 
 ENV DEBIAN_FRONTEND="noninteractive"
 RUN apt-get update && \
-    apt-get -y install clang-10 cmake zlib1g-dev ninja-build \
+    apt-get -y install clang-10 cmake ninja-build \
         python3.8 python3.8-dev python3-pip && \
     update-alternatives --install /usr/bin/cc cc /usr/bin/clang-10 100 && \
     update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-10 100 && \
@@ -28,6 +28,9 @@ RUN cmake \
     -DLLVM_TARGETS_TO_BUILD="X86" \
     -DCLANG_ENABLE_ARCMT=OFF \
     -DLLVM_ENABLE_PROJECTS="clang;compiler-rt" \
+    -DLLVM_ENABLE_ZLIB=OFF \
+    -DLLVM_ENABLE_TERMINFO=OFF \
+    -DLLVM_ENABLE_LIBPFM=OFF \
     -G "Ninja" \
     ../llvm && cmake --build . --target install
 
