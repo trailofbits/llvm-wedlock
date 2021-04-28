@@ -767,10 +767,6 @@ void AsmPrinter::EmitFunctionHeader() {
   // Emit the prologue data.
   if (F.hasPrologueData())
     EmitGlobalConstant(F.getParent()->getDataLayout(), F.getPrologueData());
-
-  // NOTE(ww): This is the logical place to drop a label to indicate the end of
-  // the function's "prologue," but it isn't actually where the prologue ends --
-  // the backend does additional frame lowering beyond this point.
 }
 
 /// EmitFunctionEntryLabel - Emit the label that is the entrypoint for the
@@ -979,28 +975,6 @@ bool AsmPrinter::needsSEHMoves() {
   return MAI->usesWindowsCFI() && MF->getFunction().needsUnwindTableEntry();
 }
 
-void AsmPrinter::emitWedlockAnchor(const MachineInstr &MI) {
-    auto &MFC = OutStreamer->getContext();
-    const auto MFName = MF->getName();
-    const auto MBBName = MI.getParent()->getSymbol()->getName();
-
-    // NOTE(ww): This should always create a symbol, since the underlying
-    // symbol that we're building off of should be unique.
-    MCSymbol *MCS;
-    switch (MI.getOpcode()) {
-    default:
-      llvm_unreachable("impossible opcode");
-    case TargetOpcode::WEDLOCK_PROLOGUE_ANCHOR:
-      MCS = MFC.getOrCreateSymbol(MFName + "_prologue_end");
-      break;
-    case TargetOpcode::WEDLOCK_EPILOGUE_ANCHOR:
-      MCS = MFC.getOrCreateSymbol(MFName + "_" + MBBName + "_epilogue_begin");
-      break;
-    }
-
-    OutStreamer->EmitLabel(MCS);
-}
-
 void AsmPrinter::emitCFIInstruction(const MachineInstr &MI) {
   ExceptionHandling ExceptionHandlingType = MAI->getExceptionHandlingType();
   if (ExceptionHandlingType != ExceptionHandling::DwarfCFI &&
@@ -1133,10 +1107,6 @@ void AsmPrinter::EmitFunctionBody() {
         emitComments(MI, OutStreamer->GetCommentOS());
 
       switch (MI.getOpcode()) {
-      case TargetOpcode::WEDLOCK_PROLOGUE_ANCHOR:
-      case TargetOpcode::WEDLOCK_EPILOGUE_ANCHOR:
-        emitWedlockAnchor(MI);
-        break;
       case TargetOpcode::CFI_INSTRUCTION:
         emitCFIInstruction(MI);
         break;
