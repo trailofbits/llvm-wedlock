@@ -114,7 +114,7 @@ private:
 
   /* Determine whether the given MachineBasicBlock will have epilogue/restore
    * code inserted into it. This roughly mirrors the PEI pass: an MBB will
-   * have epilogue code if it's the *either* target of shrink-wrapping, *or*
+   * have epilogue code if it's *either* the target of shrink-wrapping, *or*
    * is a return block.
    */
   static bool isEpilogueInsertionBlock(const MachineFrameInfo &MFI,
@@ -124,6 +124,23 @@ private:
     } else {
       return MBB.isReturnBlock();
     }
+  }
+
+  /* Similarly to isEpilogueInsertionBlock: a given MachineBasicBlock will
+   * have prologue/frame construction code inserting into it if it's either
+   * a shrink-wrap-produced savepoint *or* if it's the first block in its
+   * function.
+   * NOTE(ww): We effectively only expect a single prologue per function.
+   * This expectation is violated on Windows (due to funclets), but we don't
+   * support Windows.
+   */
+  static bool isPrologueInsertionBlock(const MachineFrameInfo &MFI,
+        const MachineBasicBlock &MBB) {
+      if (MFI.getSavePoint() != nullptr) {
+        return MBB.getNumber() == MFI.getSavePoint()->getNumber();
+      } else {
+        return MBB.getNumber() == MBB.getParent()->front().getNumber();
+      }
   }
 
   /* NOTE(ww): Stolen from Demangle.cpp (where it's static in LLVM 10).
@@ -239,6 +256,7 @@ private:
                      {"can_fallthrough", MBB.canFallThrough()},
                      {"ends_in_return", MBB.isReturnBlock()},
                      {"is_epilogue_insertion_block", isEpilogueInsertionBlock(MFI, MBB)},
+                     {"is_prologue_insertion_block", isPrologueInsertionBlock(MFI, MBB)},
                      {"address_taken", MBB.hasAddressTaken()},
                      {"has_inline_asm", HasInlineAsm},
                      {"preds", std::move(MIPreds)},
