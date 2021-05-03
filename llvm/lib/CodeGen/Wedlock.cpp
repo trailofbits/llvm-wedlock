@@ -208,13 +208,12 @@ private:
         }
 
         // TODO(ww): MI.getDesc?
-        // TODO(ww): Maybe expose MIFlag bits?
-        // e.g. MI.getFlags() & MachineInstr::MIFlag::FrameSetup
         // TODO(ww): MI.getFoldedSpillSize()
         // TODO(ww): Iterate over operands
         MIInstrs.push_back(JObject{
             {"opcode", MI.getOpcode()},
-            {"flags", MI.getFlags()},
+            {"frame_setup", bool(MI.getFlags() & MachineInstr::MIFlag::FrameSetup)},
+            {"frame_destroy", bool(MI.getFlags() & MachineInstr::MIFlag::FrameDestroy)},
         });
 
         if (MI.isInlineAsm()) {
