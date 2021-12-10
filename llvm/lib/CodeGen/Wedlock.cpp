@@ -212,6 +212,9 @@ private:
         // TODO(ww): Iterate over operands
         MIInstrs.push_back(JObject{
             {"opcode", MI.getOpcode()},
+            // TODO(ww): Maybe expose MIFlag bits?
+            // e.g. MI.getFlags() & MachineInstr::MIFlag::FrameSetup
+            {"flags", MI.getFlags()},
             {"frame_setup", bool(MI.getFlags() & MachineInstr::MIFlag::FrameSetup)},
             {"frame_destroy", bool(MI.getFlags() & MachineInstr::MIFlag::FrameDestroy)},
         });
