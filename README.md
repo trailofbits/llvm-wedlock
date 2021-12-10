@@ -1,5 +1,7 @@
 # llvm-wedlock
 
+A fork of LLVM 7 and LLVM 10 with the Wedlock pass, used by MATE.
+
 ## Usage
 
 The Wedlock pass currently builds in Docker:
