@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - wedlock-10
+  pull_request:
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      # Needed for container registry uploads.
+      packages: write
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Login to Packages Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build
+        run: |
+          docker build \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
+            --tag "ghcr.io/trailofbits/llvm-wedlock:${GITHUB_SHA}" \
+            .
+
+      - name: Push
+        run: |
+          docker push "ghcr.io/trailofbits/llvm-wedlock:${GITHUB_SHA}"
