@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - wedlock-10
-  pull_request:
 
 jobs:
   docker:
