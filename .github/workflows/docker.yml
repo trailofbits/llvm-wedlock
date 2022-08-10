@@ -26,9 +26,9 @@ jobs:
         run: |
           docker build \
             --build-arg BUILDKIT_INLINE_CACHE=1 \
-            --tag "ghcr.io/tob-llvm-wedlock:${GITHUB_SHA}" \
+            --tag "ghcr.io/trailofbits/llvm-wedlock:${GITHUB_SHA}" \
             .
 
       - name: Push
         run: |
-          docker push "ghcr.io/tob-llvm-wedlock:${GITHUB_SHA}"
+          docker push "ghcr.io/trailofbits/llvm-wedlock:${GITHUB_SHA}"
